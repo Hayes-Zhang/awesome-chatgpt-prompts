@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>骑行路线推荐助手</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+      crossorigin
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__content">
+        <p class="hero__eyebrow">Smart Cycling Helper</p>
+        <h1 class="hero__title">为当下的时间与天气选一条最适合的骑行路线</h1>
+        <p class="hero__subtitle">
+          根据当前位置、可支配时间与实时天气，自动甄选附近的骑行路线，
+          解决“今天骑哪里”的纠结。
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#planner">开始规划</a>
+          <a class="btn" href="#custom">维护我的路线库</a>
+        </div>
+      </div>
+      <div class="hero__illustration" aria-hidden="true">
+        <div class="hero__circle hero__circle--pink"></div>
+        <div class="hero__circle hero__circle--yellow"></div>
+        <div class="hero__circle hero__circle--green"></div>
+        <div class="hero__bike">
+          <span class="wheel"></span>
+          <span class="wheel"></span>
+          <span class="frame"></span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel" id="planner">
+        <header class="panel__header">
+          <h2>快速规划</h2>
+          <p>
+            填写可用时间与偏好，点击“生成推荐”。系统会根据当前位置的实时天气，
+            匹配最合适的路线与注意事项。
+          </p>
+        </header>
+        <div class="panel__body planner__layout">
+          <form id="preferenceForm" class="card form">
+            <h3>我的今日计划</h3>
+            <div class="form__field">
+              <label for="timeInput">可用时间（小时）</label>
+              <input
+                id="timeInput"
+                type="number"
+                min="0.5"
+                step="0.5"
+                value="2"
+                required
+              />
+              <small>包含通勤与休息时间，建议预留 0.5 小时机动。</small>
+            </div>
+            <div class="form__field">
+              <label for="bufferInput">休息与机动预留（分钟）</label>
+              <input id="bufferInput" type="number" min="0" max="180" value="15" />
+            </div>
+            <div class="form__field">
+              <label for="speedInput">平均巡航速度（km/h）</label>
+              <input
+                id="speedInput"
+                type="number"
+                min="10"
+                max="40"
+                step="1"
+                value="23"
+              />
+            </div>
+            <div class="form__field">
+              <label for="travelRadiusInput">愿意前往起点的距离（公里）</label>
+              <input
+                id="travelRadiusInput"
+                type="number"
+                min="1"
+                max="80"
+                step="1"
+                value="15"
+              />
+              <small>可用于筛掉过远的路线。</small>
+            </div>
+            <div class="form__field">
+              <label for="focusSelect">今日骑行想要的感觉</label>
+              <select id="focusSelect">
+                <option value="any">不限，给我惊喜</option>
+                <option value="easy">放松恢复</option>
+                <option value="urban">城市绿道</option>
+                <option value="climb">爬坡训练</option>
+                <option value="endurance">长距离拉练</option>
+                <option value="scenic">风景打卡</option>
+              </select>
+            </div>
+            <fieldset class="form__field">
+              <legend>我的位置</legend>
+              <div class="location-inputs">
+                <div>
+                  <label for="latitudeInput">纬度</label>
+                  <input
+                    id="latitudeInput"
+                    type="number"
+                    step="0.000001"
+                    placeholder="39.9042"
+                  />
+                </div>
+                <div>
+                  <label for="longitudeInput">经度</label>
+                  <input
+                    id="longitudeInput"
+                    type="number"
+                    step="0.000001"
+                    placeholder="116.4074"
+                  />
+                </div>
+              </div>
+              <div class="location-actions">
+                <button type="button" class="btn btn--ghost" id="useGeolocation">
+                  使用当前位置
+                </button>
+                <span class="hint">或者手动输入经纬度</span>
+              </div>
+            </fieldset>
+            <div class="form__actions">
+              <button type="submit" class="btn btn--primary">生成推荐</button>
+              <button type="reset" class="btn btn--ghost" id="clearResults">
+                清空推荐
+              </button>
+            </div>
+          </form>
+
+          <aside class="card status">
+            <section class="status__block" id="locationStatus">
+              <h3>定位状态</h3>
+              <p>等待获取位置……</p>
+            </section>
+            <section class="status__block" id="weatherStatus">
+              <h3>天气窗口</h3>
+              <p>尚未获取天气，请先定位。</p>
+            </section>
+            <section class="status__block" id="plannerTips">
+              <h3>小贴士</h3>
+              <ul id="tipList">
+                <li>准备好头盔、车灯与随身工具，再出发。</li>
+                <li>长距离骑行建议随身携带能量补给与水。</li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel" id="results">
+        <header class="panel__header">
+          <h2>推荐路线</h2>
+          <p>按照综合评分排序，越靠前越匹配当前条件。</p>
+        </header>
+        <div class="panel__body">
+          <div id="recommendations" class="route-list route-list--empty">
+            <div class="empty-state">
+              <p>还没有推荐结果。填写上方信息后点击“生成推荐”。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="custom">
+        <header class="panel__header">
+          <h2>维护我的路线库</h2>
+          <p>
+            默认内置了北京及周边的样例路线。可以在下方添加自定义路线，
+            系统会在推荐时自动纳入考虑（数据保存在浏览器本地）。
+          </p>
+        </header>
+        <div class="panel__body custom__layout">
+          <form id="customRouteForm" class="card form">
+            <h3>新增路线</h3>
+            <div class="form__field">
+              <label for="routeNameInput">路线名称</label>
+              <input id="routeNameInput" type="text" required />
+            </div>
+            <div class="form__field">
+              <label for="routeCityInput">所在城市/区域</label>
+              <input id="routeCityInput" type="text" placeholder="北京市" />
+            </div>
+            <div class="form__field">
+              <label for="routeDistanceInput">距离（公里）</label>
+              <input
+                id="routeDistanceInput"
+                type="number"
+                min="5"
+                max="300"
+                step="1"
+                required
+              />
+            </div>
+            <div class="form__field">
+              <label for="routeElevationInput">累计爬升（米）</label>
+              <input
+                id="routeElevationInput"
+                type="number"
+                min="0"
+                max="5000"
+                step="10"
+                value="0"
+              />
+            </div>
+            <div class="form__field">
+              <label for="routeCategorySelect">路线类型</label>
+              <select id="routeCategorySelect">
+                <option value="urban">城市绿道</option>
+                <option value="easy">放松恢复</option>
+                <option value="climb">爬坡训练</option>
+                <option value="endurance">长距离拉练</option>
+                <option value="scenic">风景探索</option>
+              </select>
+            </div>
+            <div class="form__field">
+              <label for="routeSurfaceInput">道路类型</label>
+              <input id="routeSurfaceInput" type="text" placeholder="铺装绿道" />
+            </div>
+            <div class="form__field">
+              <label for="routeHighlightsInput">亮点（用顿号或逗号分隔）</label>
+              <input
+                id="routeHighlightsInput"
+                type="text"
+                placeholder="河景、咖啡补给、夜骑友好"
+              />
+            </div>
+            <fieldset class="form__field">
+              <legend>起点经纬度</legend>
+              <div class="location-inputs">
+                <div>
+                  <label for="routeLatInput">纬度</label>
+                  <input id="routeLatInput" type="number" step="0.000001" required />
+                </div>
+                <div>
+                  <label for="routeLonInput">经度</label>
+                  <input id="routeLonInput" type="number" step="0.000001" required />
+                </div>
+              </div>
+            </fieldset>
+            <div class="form__field">
+              <label for="routeNotesInput">补充说明</label>
+              <textarea
+                id="routeNotesInput"
+                rows="3"
+                placeholder="补给点、交通方式、注意事项……"
+              ></textarea>
+            </div>
+            <div class="form__field toggle-field">
+              <label>
+                <input type="checkbox" id="routeRainFriendlyInput" />
+                雨天仍较安全（铺装、排水良好）
+              </label>
+              <label>
+                <input type="checkbox" id="routeHeatFriendlyInput" />
+                炎热天气也适合（有遮阴或补水）
+              </label>
+              <label>
+                <input type="checkbox" id="routeColdFriendlyInput" />
+                寒冷天气也适合（海拔低、易热身）
+              </label>
+            </div>
+            <div class="form__actions">
+              <button type="submit" class="btn btn--primary">保存路线</button>
+              <button type="button" class="btn btn--ghost" id="resetCustomRoutes">
+                清空自定义路线
+              </button>
+            </div>
+          </form>
+
+          <div class="card custom-list">
+            <h3>我的路线库</h3>
+            <ul id="customRouteList" class="custom-list__items">
+              <li class="empty-state">尚未添加自定义路线。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <small>
+        数据来自公开天气接口（Open-Meteo）。自定义路线仅保存在本地浏览器，
+        若更换设备请记得导出/备份。
+      </small>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
